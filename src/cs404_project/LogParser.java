@@ -726,7 +726,7 @@ class DBConnectSettingsDialog extends JDialog implements ActionListener {
         if (!(new File("config.dat")).exists()) {
                        
             jtf_username.setText ("root");
-            jpf_password.setText ("");
+            jpf_password.setText ("root");
             jtf_dbname.setText ("owncloud");
             jtf_hostname.setText ("localhost");
                     
