@@ -1,18 +1,13 @@
-package cs404_project;
-
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+
+package cs404_project;
+
 import javax.swing.JFileChooser;
-import java.io.File;  
 import java.io.FileReader;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,6 +22,41 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import com.isti.util.IstiFileFilter;
 
+//MySQL imports (http://zetcode.com/db/mysqljava/)
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.PreparedStatement;
+
+import javax.swing.*;
+import java.awt.event.*;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+
+// password encryption stuff
+import java.io.UnsupportedEncodingException;
+import java.security.GeneralSecurityException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.PBEParameterSpec;
+
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
 /**
  *
  * @author KJSFA1
@@ -39,11 +69,14 @@ public class LogParser extends javax.swing.JFrame {
                                                         // Make this global for the CSV
                                                         // export button...
 
+    DBConnectSettingsDialog jdlg_dbSettings;
     /**
      * Creates new form LogParser
      */
     public LogParser() {
+        
         initComponents();
+        jdlg_dbSettings = new DBConnectSettingsDialog ();
     }
 
     /**
@@ -55,6 +88,8 @@ public class LogParser extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jMenuItem5 = new javax.swing.JMenuItem();
+        jMenuItem6 = new javax.swing.JMenuItem();
         jButton1 = new javax.swing.JButton();
         jTextField1 = new javax.swing.JTextField();
         jButton2 = new javax.swing.JButton();
@@ -70,8 +105,15 @@ public class LogParser extends javax.swing.JFrame {
         jMenu1 = new javax.swing.JMenu();
         jMenuItem3 = new javax.swing.JMenuItem();
         jSeparator1 = new javax.swing.JPopupMenu.Separator();
+        jMenuItem4 = new javax.swing.JMenuItem();
         jMenuItem1 = new javax.swing.JMenuItem();
         jMenuItem2 = new javax.swing.JMenuItem();
+        jMenu2 = new javax.swing.JMenu();
+        jMenuItem7 = new javax.swing.JMenuItem();
+
+        jMenuItem5.setText("jMenuItem5");
+
+        jMenuItem6.setText("jMenuItem6");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("OwnCloud Failed Logon Parser");
@@ -152,6 +194,16 @@ public class LogParser extends javax.swing.JFrame {
         jMenu1.add(jMenuItem3);
         jMenu1.add(jSeparator1);
 
+        jMenuItem4.setText("Disable Users");
+        jMenuItem4.setActionCommand("Disableusers");
+        jMenuItem4.setEnabled(false);
+        jMenuItem4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem4ActionPerformed(evt);
+            }
+        });
+        jMenu1.add(jMenuItem4);
+
         jMenuItem1.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, 0));
         jMenuItem1.setText("Clear");
         jMenuItem1.addActionListener(new java.awt.event.ActionListener() {
@@ -171,6 +223,24 @@ public class LogParser extends javax.swing.JFrame {
         jMenu1.add(jMenuItem2);
 
         jMenuBar1.add(jMenu1);
+
+        jMenu2.setText("Connection Properties");
+        jMenu2.setName("jmi_connectionSettings"); // NOI18N
+        jMenu2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenu2ActionPerformed(evt);
+            }
+        });
+
+        jMenuItem7.setText("Change Settings");
+        jMenuItem7.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenu2ActionPerformed(evt);
+            }
+        });
+        jMenu2.add(jMenuItem7);
+
+        jMenuBar1.add(jMenu2);
 
         setJMenuBar(jMenuBar1);
 
@@ -436,6 +506,7 @@ public class LogParser extends javax.swing.JFrame {
         jTextField2.setEnabled(false);
         jTextField3.setEnabled(false);
         jMenuItem3.setEnabled(true);
+        jMenuItem4.setEnabled(true);
     }//GEN-LAST:event_jButton2ActionPerformed
 
     // Exit menu
@@ -457,6 +528,7 @@ public class LogParser extends javax.swing.JFrame {
         jTextField2.setEnabled(true);
         jTextField3.setEnabled(true);
         jMenuItem3.setEnabled(false);
+        jMenuItem4.setEnabled(false);
         jLabel3.setText(" ");
         jLabel4.setText(" ");
     }//GEN-LAST:event_jMenuItem1ActionPerformed
@@ -496,6 +568,75 @@ public class LogParser extends javax.swing.JFrame {
             }
         }
     }//GEN-LAST:event_jMenuItem3ActionPerformed
+
+    private void jMenuItem4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem4ActionPerformed
+        
+        String username = jdlg_dbSettings.getDBUserName();
+        String password = new String (jdlg_dbSettings.getDBUserPwd());        
+        String database = jdlg_dbSettings.getDBDatabaseName();
+        String databaseAddress = "jdbc:mysql://" + jdlg_dbSettings.getDBHostName();
+        
+        //Disableusers.setVisible(false);
+        Connection con = null;
+        PreparedStatement pst = null;
+        
+        try {
+
+            //String author = "Trygve Gulbranssen";
+            Driver mysqlDriver = new com.mysql.jdbc.Driver ();
+            con = DriverManager.getConnection(databaseAddress, username, password);
+            
+            PreparedStatement selectOwncloud = con.prepareStatement ("use " + database);
+            selectOwncloud.executeUpdate ();
+            
+            int updated = 0;
+            
+            for (String key : badusers.keySet()){
+                
+                //model.addRow(new Object[]{key, badusers.get(key)});
+                pst = con.prepareStatement("INSERT INTO oc_preferences(userid, appid, configkey, configvalue) VALUES(?, ?, ?, ?)");
+                
+                pst.setString(1, key);                
+                pst.setString(2, "core");
+                pst.setString(3, "enabled");
+                pst.setString(4, "false");
+                
+                updated += pst.executeUpdate();
+            }
+            
+            String alertString = "Added " + badusers.keySet().size() + " users to disabled list\n";
+            alertString += "MySQL rows affected: " + updated;
+            
+            JOptionPane.showMessageDialog (null, alertString, "Success!", JOptionPane.INFORMATION_MESSAGE);
+            
+        } catch (SQLException ex) {
+            
+            JOptionPane.showMessageDialog (null, "SQL Exception: " + ex.toString (), "SQL ERROR!", JOptionPane.ERROR_MESSAGE);
+
+        } finally {
+
+            try {
+                
+                if (pst != null) {
+                    pst.close();
+                }
+                
+                if (con != null) {
+                    con.close();
+                }
+
+            } catch (SQLException ex) {
+                
+                JOptionPane.showMessageDialog (null, "SQL Exception: " + ex.toString (), "SQL ERROR!", JOptionPane.ERROR_MESSAGE);
+            }
+    
+         }
+    }//GEN-LAST:event_jMenuItem4ActionPerformed
+
+    private void jMenu2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenu2ActionPerformed
+        
+        jdlg_dbSettings.setVisible (true);
+    }//GEN-LAST:event_jMenu2ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -540,10 +681,15 @@ public class LogParser extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JMenuItem jMenuItem2;
     private javax.swing.JMenuItem jMenuItem3;
+    private javax.swing.JMenuItem jMenuItem4;
+    private javax.swing.JMenuItem jMenuItem5;
+    private javax.swing.JMenuItem jMenuItem6;
+    private javax.swing.JMenuItem jMenuItem7;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JPopupMenu.Separator jSeparator1;
     private javax.swing.JTable jTable1;
@@ -551,4 +697,301 @@ public class LogParser extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextField3;
     // End of variables declaration//GEN-END:variables
+}
+
+class DBConnectSettingsDialog extends JDialog implements ActionListener {
+
+    private JTextField jtf_username;
+    private JPasswordField jpf_password;
+    private JTextField jtf_dbname;
+    private JTextField jtf_hostname;
+    
+    private JButton jbtn_apply;
+    private JButton jbtn_cancel;
+    
+    private boolean saveChanges;
+    
+    private static final char [] MASTER_PWD = "kjojiojaowe933e2".toCharArray();
+    private static final byte [] PWD_SALT = { (byte) 0x12, (byte) 0x45, (byte) 0x23, (byte) 0x55, 
+            (byte)0x12, (byte)(0x45), (byte)0x23, (byte) 0x55 };
+    
+    public DBConnectSettingsDialog () {
+        
+        // initialize components and load configuration file
+        initComponents ();
+        
+        // if the configuration file does not exist, ask if we should create it.
+        // if not, changes to the connection settings will NOT be saved and
+        // a default connection will be loaded
+        if (!(new File("config.dat")).exists()) {
+                       
+            jtf_username.setText ("root");
+            jpf_password.setText ("");
+            jtf_dbname.setText ("owncloud");
+            jtf_hostname.setText ("localhost");
+                
+            String errmsg = "Warning! No database configuration file was found. Would you like to write a new file?";
+            int result = JOptionPane.showConfirmDialog(null, errmsg, "Config file error", JOptionPane.YES_NO_OPTION);
+            
+            // write a new file with default options installed
+            if (result == JOptionPane.YES_OPTION) {
+                
+                saveChanges = true;
+                
+                try { writeConfigFile (); }
+                
+                catch (IOException e) {
+                    
+                    JOptionPane.showMessageDialog (null, "Configuration file could not be written. Changes will NOT be saved!",
+                            "File Error:", JOptionPane.ERROR_MESSAGE);
+                    
+                    // if there was an I/O error but the file exists, delete the file
+                    File configFile = new File ("config.dat");
+                    if (configFile.exists())
+                        configFile.delete();
+                    
+                    saveChanges = false;
+                }
+            }
+            
+            // warn the user that changes will NOT be saved
+            else if (result == JOptionPane.NO_OPTION)    
+                saveChanges = false;
+        }
+        
+        // the file already exists, load the configuration
+        else {
+            
+            try {
+                
+                loadConfigFile ();
+                saveChanges = true;
+            
+            } catch (IOException e) {
+                
+            }
+        }
+    }
+    
+    public String getDBUserName () { return jtf_username.getText(); }
+    public char [] getDBUserPwd () { return jpf_password.getPassword(); }
+    public String getDBDatabaseName () { return jtf_dbname.getText(); }
+    public String getDBHostName () { return jtf_hostname.getText(); }
+    
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+       
+        if (ae.getSource () == jbtn_apply) {
+            
+            try {
+                
+                writeConfigFile ();
+            
+            } catch (IOException e) {
+               
+                JOptionPane.showMessageDialog (null, "Unable to write configuration file", "Error!", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+        else if (ae.getSource () == jbtn_cancel) {
+            
+            try {
+                
+                loadConfigFile ();
+            
+            } catch (IOException ex) {
+                
+                Logger.getLogger(DBConnectSettingsDialog.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        this.setVisible (false);
+    }
+    
+    private void initComponents () {
+        
+        // create a new border layout
+        this.setLayout (new GridBagLayout ());
+        GridBagConstraints gbc = new GridBagConstraints ();
+        gbc.insets = new Insets (5, 5, 5, 5);
+        
+        // create a label for the username field, then the field
+        jtf_username = new JTextField ();
+        jpf_password = new JPasswordField ();
+        jtf_dbname = new JTextField ();
+        jtf_hostname = new JTextField ();
+        
+        jbtn_apply = new JButton ("Apply Settings");
+        jbtn_apply.addActionListener(this);
+        
+        jbtn_cancel = new JButton ("Cancel");
+        jbtn_cancel.addActionListener (this);
+        
+        // set up to add the labels
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.1;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        // add the username label
+        this.add (new JLabel("Username:"), gbc);
+        // add the password label
+        gbc.gridy = 1;
+        this.add (new JLabel ("Password:"), gbc);
+        // add the db name label
+        gbc.gridy = 2;
+        this.add (new JLabel ("Database name:"), gbc);
+        // add the hostname label
+        gbc.gridy = 3;
+        this.add (new JLabel ("Host name / IP:"), gbc);
+        
+        // reset for adding the text fields
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        this.add (jtf_username, gbc);
+        gbc.gridy = 1;
+        this.add (jpf_password, gbc);
+        gbc.gridy = 2;
+        this.add (jtf_dbname, gbc);
+        gbc.gridy = 3;
+        this.add (jtf_hostname, gbc);
+        
+        // reset for adding the buttons
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.1;
+        gbc.gridx = 2;
+        gbc.gridy = 4;
+        gbc.fill = GridBagConstraints.NONE;
+        
+        // add the buttons
+        gbc.anchor = GridBagConstraints.PAGE_END;
+        this.add (jbtn_apply, gbc);
+        
+        gbc.anchor = GridBagConstraints.PAGE_END;
+        gbc.gridx = 4;
+        gbc.gridwidth = 1;
+        
+        this.add (jbtn_cancel, gbc);
+        
+        // try to size the two buttons the same
+        jbtn_cancel.setPreferredSize(jbtn_apply.getPreferredSize());
+
+        // show this dialog (testing!!!)
+        this.setSize (400, 300);
+        this.setModal(true);
+        this.setTitle ("Connection Properties");
+    }
+    
+    private void loadConfigFile () throws IOException {
+      
+        try (BufferedReader cfgReader = new BufferedReader (new InputStreamReader (new FileInputStream ("config.dat")))) {
+            
+            // read the first line, should be [db_config]
+            if (!cfgReader.readLine().equals ("db_config"))
+                throw new IOException ("Invalid configuration file format");
+            
+            String curLine = "";
+            
+            while ((curLine = cfgReader.readLine ()) != null) {
+                
+                // read each setting in
+                
+                // get the username from the file
+                if (curLine.startsWith ("username=")) {
+                    
+                    String uname = curLine.substring (curLine.indexOf('=')+1);
+                    jtf_username.setText (uname);
+                }
+                
+                // get the password from the file
+                else if (curLine.startsWith("password=")) {
+                    
+                    try {
+                    
+                        String pwd = curLine.substring (curLine.indexOf('=')+1, curLine.length());
+                        pwd = decryptPassword (pwd);
+                        jpf_password.setText (pwd);
+                        
+                    } catch (GeneralSecurityException ex) {
+                        
+                    }
+                }
+                
+                else if (curLine.startsWith ("default-db=")) {
+                    
+                    String dbname = curLine.substring (curLine.indexOf('=')+1);
+                    jtf_dbname.setText (dbname);
+                }
+                
+                else if (curLine.startsWith ("host-id=")) {
+                    
+                    String hostid = curLine.substring (curLine.indexOf('=')+1);
+                    jtf_hostname.setText (hostid);
+                }
+                
+                else {
+                    
+                    System.out.println ("Invalid setting, skipping...");
+                }
+            }
+            
+            // close the reader
+            cfgReader.close ();      
+        }
+    }
+    
+    private void writeConfigFile () throws IOException {
+         
+        if (!saveChanges)
+            return;
+        
+        // write the new configuration file
+        try (BufferedWriter cfgWriter = new BufferedWriter (new OutputStreamWriter (new FileOutputStream ("config.dat")))) 
+        {
+            cfgWriter.write ("db_config\n");
+            cfgWriter.write ("username=" + jtf_username.getText() + "\n");
+            
+            try {
+                
+                cfgWriter.write ("password=" + encryptPassword(jpf_password.getText()) + "\n");
+                
+            } catch (GeneralSecurityException | UnsupportedEncodingException ex) {
+                
+                Logger.getLogger(DBConnectSettingsDialog.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            cfgWriter.write ("default-db=" + jtf_dbname.getText() + "\n");
+            cfgWriter.write ("host-id=" + jtf_hostname.getText() + "\n");
+
+            cfgWriter.flush ();
+            cfgWriter.close ();
+        }
+    }
+    
+    private String encryptPassword (String pwd) throws GeneralSecurityException, UnsupportedEncodingException {
+        
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance ("PBEWithMD5AndDES");
+        SecretKey key = keyFactory.generateSecret (new PBEKeySpec (MASTER_PWD));
+        
+        Cipher pbeCipher = Cipher.getInstance ("PBEWithMD5AndDES");
+        pbeCipher.init (Cipher.ENCRYPT_MODE, key, new PBEParameterSpec(PWD_SALT, 20));
+        
+        String baseEncode = new BASE64Encoder().encode(pbeCipher.doFinal(pwd.getBytes("UTF-8")));
+        return baseEncode;
+    }
+    
+    private String decryptPassword (String pwd) throws GeneralSecurityException, IOException {
+        
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance ("PBEWithMD5AndDES");
+        SecretKey key = keyFactory.generateSecret (new PBEKeySpec (MASTER_PWD));
+        
+        Cipher pbeCipher = Cipher.getInstance ("PBEWithMD5AndDES");
+        pbeCipher.init (Cipher.DECRYPT_MODE, key, new PBEParameterSpec(PWD_SALT, 20));
+        
+        return new String (pbeCipher.doFinal (new BASE64Decoder().decodeBuffer(pwd)));
+    }
 }
