@@ -729,34 +729,19 @@ class DBConnectSettingsDialog extends JDialog implements ActionListener {
             jpf_password.setText ("");
             jtf_dbname.setText ("owncloud");
             jtf_hostname.setText ("localhost");
-                
-            String errmsg = "Warning! No database configuration file was found. Would you like to write a new file?";
-            int result = JOptionPane.showConfirmDialog(null, errmsg, "Config file error", JOptionPane.YES_NO_OPTION);
-            
-            // write a new file with default options installed
-            if (result == JOptionPane.YES_OPTION) {
-                
-                saveChanges = true;
-                
-                try { writeConfigFile (); }
-                
-                catch (IOException e) {
                     
-                    JOptionPane.showMessageDialog (null, "Configuration file could not be written. Changes will NOT be saved!",
-                            "File Error:", JOptionPane.ERROR_MESSAGE);
+            try { writeConfigFile (); }
+                
+            catch (IOException e) {
                     
-                    // if there was an I/O error but the file exists, delete the file
-                    File configFile = new File ("config.dat");
-                    if (configFile.exists())
-                        configFile.delete();
+                JOptionPane.showMessageDialog (null, "Configuration file could not be written. Changes will NOT be saved!",
+                       "File Error:", JOptionPane.ERROR_MESSAGE);
                     
-                    saveChanges = false;
-                }
+                // if there was an I/O error but the file exists, delete the file
+                File configFile = new File ("config.dat");
+                if (configFile.exists())
+                    configFile.delete();
             }
-            
-            // warn the user that changes will NOT be saved
-            else if (result == JOptionPane.NO_OPTION)    
-                saveChanges = false;
         }
         
         // the file already exists, load the configuration
@@ -765,8 +750,7 @@ class DBConnectSettingsDialog extends JDialog implements ActionListener {
             try {
                 
                 loadConfigFile ();
-                saveChanges = true;
-            
+
             } catch (IOException e) {
                 
             }
@@ -946,9 +930,6 @@ class DBConnectSettingsDialog extends JDialog implements ActionListener {
     
     private void writeConfigFile () throws IOException {
          
-        if (!saveChanges)
-            return;
-        
         // write the new configuration file
         try (BufferedWriter cfgWriter = new BufferedWriter (new OutputStreamWriter (new FileOutputStream ("config.dat")))) 
         {
